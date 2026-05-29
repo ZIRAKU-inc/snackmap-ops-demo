@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snack Map — ダッシュボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f4f0;--white:#fff;--surface:#eeeee8;--border:#e0dfd8;--border-md:#c8c7be;
+  --text:#1a1916;--text2:#5a5950;--text3:#9a9990;
+  --acc:#d4562a;--acc-l:#fdf1ed;--acc-b:#f0b8a4;
+  --blue:#2a5fd4;--blue-l:#edf1fd;--blue-b:#a4b8f0;
+  --green:#1f8c5a;--green-l:#edfaf3;--green-b:#a4dfc2;
+  --amber:#c47d0a;--amber-l:#fdf8ed;--amber-b:#f0d9a4;
+  --purple:#7c3aed;--purple-l:#f3f0ff;--purple-b:#c4b5fd;
+  --r:12px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:'Noto Sans JP',sans-serif;font-size:14px;color:var(--text);background:var(--bg)}
+
+/* ── Top Nav ── */
+.topnav{
+  position:sticky;top:0;z-index:100;
+  background:var(--white);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:0;padding:0 28px;height:52px;
+}
+.nav-logo{
+  font-size:14px;font-weight:700;letter-spacing:-.02em;margin-right:32px;
+  display:flex;align-items:center;gap:8px;
+}
+.nav-logo-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;display:block;margin-top:1px}
+.nav-link{
+  display:flex;align-items:center;gap:6px;padding:0 14px;height:52px;
+  font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .12s;text-decoration:none;
+}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--acc);border-bottom-color:var(--acc)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn-new{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;border-radius:var(--rs);border:none;
+  background:var(--acc);color:#fff;transition:background .12s;
+}
+.btn-new:hover{background:#be4a22}
+.btn-new:active{transform:scale(.98)}
+
+/* ── Page ── */
+.page{max-width:1100px;margin:0 auto;padding:28px 24px 60px}
+
+/* ── KPI bar ── */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
+.kpi-card{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 18px;
+}
+.kpi-num{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;line-height:1;margin-bottom:5px}
+.kpi-label{font-size:12px;color:var(--text2)}
+.kpi-num.all{color:var(--text)}
+.kpi-num.todo{color:var(--text3)}
+.kpi-num.doing{color:var(--blue)}
+.kpi-num.making{color:var(--amber)}
+.kpi-num.done{color:var(--green)}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar-title{font-size:15px;font-weight:700;letter-spacing:-.02em;margin-right:4px}
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.fpill{
+  padding:5px 13px;border-radius:100px;font-size:12px;font-weight:500;
+  cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text2);
+  transition:all .12s;
+}
+.fpill:hover{border-color:var(--border-md)}
+.fpill.active{background:var(--acc-l);border-color:var(--acc-b);color:var(--acc)}
+.search-wrap{margin-left:auto;position:relative}
+.search-wrap input{
+  width:200px;font-size:13px;padding:6px 10px 6px 32px;
+  font-family:'Noto Sans JP',sans-serif;color:var(--text);
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);outline:none;
+  transition:border-color .12s;
+}
+.search-wrap input:focus{border-color:var(--border-md);background:var(--white)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)}
+.sort-sel{
+  font-size:12px;font-family:'Noto Sans JP',sans-serif;color:var(--text2);
+  background:var(--white);border:1px solid var(--border);border-radius:var(--rs);
+  padding:5px 10px;outline:none;cursor:pointer;
+}
+
+/* ── Case Grid ── */
+.case-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+
+/* ── Case Card ── */
+.case-card{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  cursor:pointer;transition:all .15s;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.case-card:hover{border-color:var(--border-md);box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-1px)}
+.case-card:active{transform:translateY(0)}
+
+.card-head{padding:16px 18px 12px;display:flex;align-items:flex-start;gap:10px}
+.card-head-info{flex:1;min-width:0}
+.card-shop-name{font-size:15px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-account{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.card-status{flex-shrink:0}
+
+.status-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px}
+.status-badge.todo{background:var(--surface);color:var(--text3)}
+.status-badge.doing{background:var(--blue-l);color:var(--blue)}
+.status-badge.making{background:var(--amber-l);color:var(--amber)}
+.status-badge.done{background:var(--green-l);color:var(--green)}
+
+/* Phase progress */
+.card-phases{padding:0 18px 14px;display:flex;flex-direction:column;gap:7px}
+.phase-row{display:flex;align-items:center;gap:8px}
+.phase-label{font-size:11px;color:var(--text2);width:88px;flex-shrink:0;display:flex;align-items:center;gap:5px}
+.phase-icon{font-size:11px}
+.phase-bar-wrap{flex:1}
+.phase-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.phase-fill{height:100%;border-radius:3px;transition:width .3s}
+.phase-fill.sales{background:var(--blue)}
+.phase-fill.collect{background:var(--amber)}
+.phase-fill.make{background:var(--purple)}
+.phase-fill.publish{background:var(--acc)}
+.phase-fill.instagram{background:var(--green)}
+.phase-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);width:28px;text-align:right;flex-shrink:0}
+
+/* Card footer */
+.card-foot{
+  padding:10px 18px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);
+}
+.card-foot-step{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.card-foot-step .cur-phase{font-weight:500;color:var(--text)}
+.card-total-bar{display:flex;align-items:center;gap:7px}
+.total-bar{height:4px;width:80px;background:var(--border);border-radius:2px;overflow:hidden}
+.total-fill{height:100%;background:var(--acc);border-radius:2px;transition:width .3s}
+.total-pct{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)}
+
+/* open btn */
+.open-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:500;color:var(--acc);
+  padding:3px 8px;border-radius:var(--rs);
+  background:var(--acc-l);border:1px solid var(--acc-b);
+  transition:background .12s;
+}
+.open-btn:hover{background:var(--acc-b)}
+
+/* ── Empty ── */
+.empty-state{text-align:center;padding:60px 24px;color:var(--text3)}
+.empty-state .big{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.7}
+
+/* ── Modal: 新規案件 ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(26,25,22,.45);z-index:200;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--white);border-radius:var(--r);border:1px solid var(--border);width:480px;overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:15px;font-weight:700}
+.modal-body{padding:20px}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* form */
+label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px}
+input,select{
+  width:100%;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text);
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);
+  padding:8px 11px;outline:none;transition:border-color .12s;
+}
+input:focus,select:focus{border-color:var(--border-md);background:var(--white)}
+.field{margin-bottom:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;border-radius:var(--rs);border:1px solid var(--border-md);
+  background:var(--white);color:var(--text);transition:all .12s;
+}
+.btn:hover{background:var(--surface)}
+.btn.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn.primary:hover{background:#be4a22}
+.btn.sm{padding:5px 12px;font-size:12px}
+
+/* Supabase note */
+.db-note{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;background:var(--blue-l);border:1px solid var(--blue-b);
+  border-radius:var(--rs);font-size:12px;color:var(--blue);margin-bottom:20px;
+}
+
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:9px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="topnav">
+  <div class="nav-logo">
+    <div>
+      <span>Snack Map Ops</span>
+      <span class="nav-logo-sub">営業・制作管理</span>
+    </div>
+  </div>
+  <a class="nav-link active" href="/">🏠 ダッシュボード</a>
+  <a class="nav-link" href="/ops.html">⚙️ 作業ツール</a>
+  <div class="nav-right">
+    <button class="btn-new" onclick="openModal()">＋ 新規案件を登録</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- KPI -->
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-title">案件一覧</span>
+    <div class="filter-pills" id="filter-pills">
+      <div class="fpill active" onclick="setFilter('all',this)">すべて</div>
+      <div class="fpill" onclick="setFilter('todo',this)">未着手</div>
+      <div class="fpill" onclick="setFilter('doing',this)">進行中</div>
+      <div class="fpill" onclick="setFilter('making',this)">制作中</div>
+      <div class="fpill" onclick="setFilter('done',this)">完了</div>
+    </div>
+    <select class="sort-sel" onchange="setSort(this.value)">
+      <option value="newest">登録が新しい順</option>
+      <option value="oldest">登録が古い順</option>
+      <option value="progress-desc">進捗が多い順</option>
+      <option value="progress-asc">進捗が少ない順</option>
+      <option value="name">店舗名順</option>
+    </select>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="search-input" placeholder="店舗名で検索…" oninput="renderGrid()" />
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="case-grid" id="case-grid"></div>
+
+</div>
+
+<!-- 新規案件 Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>新規案件を登録</h3>
+      <button class="btn sm" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="db-note">
+        💡 本番環境ではSupabaseに自動保存されます。このデモはブラウザ内で動作します。
+      </div>
+      <div class="row2">
+        <div class="field"><label>店舗名 <span style="color:var(--acc)">*</span></label><input id="m-name" placeholder="例：スナック マリア" /></div>
+        <div class="field"><label>Instagramアカウント名</label><input id="m-account" placeholder="例：snack_maria_osaka" /></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>エリア</label><input id="m-area" placeholder="例：大阪・難波" /></div>
+        <div class="field"><label>担当者</label><input id="m-staff" placeholder="例：田村" /></div>
+      </div>
+      <div class="field"><label>備考</label><input id="m-note" placeholder="任意メモ" /></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn primary" onclick="registerCase()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────
+// PHASE / STEP 定義（作業ツールと共通）
+// ──────────────────────────────────────
+const PHASES = [
+  { id:'sales',     label:'営業',          icon:'📨', color:'sales',
+    steps:['register','dm-first','dm-reply'] },
+  { id:'collect',   label:'情報収集',      icon:'📋', color:'collect',
+    steps:['dm-image','receive-img','dm-hearing','dm-recruit'] },
+  { id:'make',      label:'ページ制作',    icon:'✨', color:'make',
+    steps:['gen-shop','gen-rec','input-cms'] },
+  { id:'publish',   label:'確認・公開',    icon:'🚀', color:'publish',
+    steps:['confirm-dm','fix','publish'] },
+  { id:'instagram', label:'Instagram投稿', icon:'📸', color:'instagram',
+    steps:['ig-info','ig-prompt'] },
+];
+const ALL_STEP_IDS = PHASES.flatMap(p=>p.steps);
+const TOTAL = ALL_STEP_IDS.length;
+
+const STATUS_LABEL = {todo:'未着手', doing:'進行中', making:'制作中', done:'完了'};
+
+// ──────────────────────────────────────
+// STATE（デモ用・localStorage永続化）
+// ──────────────────────────────────────
+let cases = [];
+let currentFilter = 'all';
+let currentSort   = 'newest';
+
+function load(){
+  try{ cases = JSON.parse(localStorage.getItem('sm_cases')||'[]'); }
+  catch{ cases = []; }
+  if(!cases.length) seedDemo();
+}
+function save(){ localStorage.setItem('sm_cases', JSON.stringify(cases)); }
+
+// デモ用サンプルデータ
+function seedDemo(){
+  const seed = [
+    { name:'スナック マリア',   account:'snack_maria_osaka',  area:'大阪・難波', staff:'田村', note:'',  doneCount:13 },
+    { name:'スナック ひまわり', account:'snack_himawari_kobe', area:'神戸・三宮',   staff:'田村', note:'',  doneCount:7  },
+    { name:'バー ルナ',         account:'bar_luna_namba',      area:'大阪・難波',   staff:'田村', note:'カラオケあり', doneCount:15 },
+    { name:'スナック 桜',       account:'snack_sakura_kyoto',  area:'京都・木屋町',   staff:'田村', note:'',  doneCount:0  },
+    { name:'クラブ アイリス',   account:'club_iris_shinsaibashi', area:'大阪・心斎橋', staff:'田村', note:'', doneCount:3 },
+  ];
+  cases = seed.map((s,i)=>makeCase(s.name, s.account, s.area, s.staff, s.note, s.doneCount, i));
+  save();
+}
+
+function makeCase(name, account, area, staff, note, doneCount=0, offsetDays=0){
+  const steps = Object.fromEntries(ALL_STEP_IDS.map((id,i)=>[id,{done: i<doneCount}]));
+  const created = new Date(Date.now() - offsetDays*86400000*3).toISOString();
+  return { id:Date.now()+Math.random(), name, account, area, staff, note, steps, created,
+    currentStepId: ALL_STEP_IDS[Math.min(doneCount, TOTAL-1)],
+    activePhaseId: getActivePhase(steps),
+  };
+}
+
+function getActivePhase(steps){
+  for(const ph of PHASES){
+    if(ph.steps.some(id=>!steps[id].done)) return ph.id;
+  }
+  return PHASES[PHASES.length-1].id;
+}
+
+function getStatus(c){
+  const done = ALL_STEP_IDS.filter(id=>c.steps[id].done).length;
+  if(done===0) return 'todo';
+  if(done===TOTAL) return 'done';
+  const makingIds = ['gen-shop','gen-rec'];
+  if(makingIds.some(id=>c.steps[id].done)) return 'making';
+  return 'doing';
+}
+
+function getDonePct(c){ return Math.round(ALL_STEP_IDS.filter(id=>c.steps[id].done).length/TOTAL*100); }
+
+function getCurrentPhaseLabel(c){
+  for(const ph of PHASES){
+    if(ph.steps.some(id=>!c.steps[id].done)) return `${ph.icon} ${ph.label}`;
+  }
+  return '✅ 全完了';
+}
+
+// ──────────────────────────────────────
+// FILTER / SORT / SEARCH
+// ──────────────────────────────────────
+function setFilter(f, el){
+  currentFilter = f;
+  document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+function setSort(v){ currentSort = v; renderGrid(); }
+
+function filteredSorted(){
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  let list = cases.filter(c=>{
+    const stMatch = currentFilter==='all' || getStatus(c)===currentFilter;
+    const searchMatch = !q || c.name.toLowerCase().includes(q) || (c.account||'').toLowerCase().includes(q) || (c.area||'').toLowerCase().includes(q);
+    return stMatch && searchMatch;
+  });
+  list.sort((a,b)=>{
+    if(currentSort==='newest') return new Date(b.created)-new Date(a.created);
+    if(currentSort==='oldest') return new Date(a.created)-new Date(b.created);
+    if(currentSort==='progress-desc') return getDonePct(b)-getDonePct(a);
+    if(currentSort==='progress-asc') return getDonePct(a)-getDonePct(b);
+    if(currentSort==='name') return a.name.localeCompare(b.name,'ja');
+    return 0;
+  });
+  return list;
+}
+
+// ──────────────────────────────────────
+// RENDER KPI
+// ──────────────────────────────────────
+function renderKPI(){
+  const counts = {all:cases.length, todo:0, doing:0, making:0, done:0};
+  cases.forEach(c=>counts[getStatus(c)]++);
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi-card"><div class="kpi-num all">${counts.all}</div><div class="kpi-label">総案件数</div></div>
+    <div class="kpi-card"><div class="kpi-num todo">${counts.todo}</div><div class="kpi-label">未着手</div></div>
+    <div class="kpi-card"><div class="kpi-num doing">${counts.doing}</div><div class="kpi-label">進行中</div></div>
+    <div class="kpi-card"><div class="kpi-num making">${counts.making}</div><div class="kpi-label">制作中</div></div>
+    <div class="kpi-card"><div class="kpi-num done">${counts.done}</div><div class="kpi-label">完了</div></div>
+  `;
+}
+
+// ──────────────────────────────────────
+// RENDER GRID
+// ──────────────────────────────────────
+function renderGrid(){
+  renderKPI();
+  const list = filteredSorted();
+  const el = document.getElementById('case-grid');
+  if(!list.length){
+    el.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="big">📭</div><p>条件に一致する案件がありません。</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(c=>cardHTML(c)).join('');
+}
+
+function cardHTML(c){
+  const st = getStatus(c);
+  const pct = getDonePct(c);
+
+  const phaseBars = PHASES.map(ph=>{
+    const total = ph.steps.length;
+    const done  = ph.steps.filter(id=>c.steps[id].done).length;
+    const barPct = Math.round(done/total*100);
+    return `<div class="phase-row">
+      <div class="phase-label"><span class="phase-icon">${ph.icon}</span>${ph.label}</div>
+      <div class="phase-bar-wrap">
+        <div class="phase-bar"><div class="phase-fill ${ph.color}" style="width:${barPct}%"></div></div>
+      </div>
+      <div class="phase-count">${done}/${total}</div>
+    </div>`;
+  }).join('');
+
+  const curPhase = getCurrentPhaseLabel(c);
+
+  return `<div class="case-card" onclick="openCase('${c.id}')">
+    <div class="card-head">
+      <div class="card-head-info">
+        <div class="card-shop-name">${esc(c.name)}</div>
+        <div class="card-account">${c.account?'@'+esc(c.account):'—'}${c.area?' · '+esc(c.area):''}</div>
+      </div>
+      <div class="card-status"><span class="status-badge ${st}">${STATUS_LABEL[st]}</span></div>
+    </div>
+    <div class="card-phases">${phaseBars}</div>
+    <div class="card-foot">
+      <div class="card-foot-step">
+        現在：<span class="cur-phase">${curPhase}</span>
+        ${c.staff?`<span style="color:var(--text3);margin-left:6px">担当 ${esc(c.staff)}</span>`:''}
+      </div>
+      <div class="card-total-bar">
+        <div class="total-bar"><div class="total-fill" style="width:${pct}%"></div></div>
+        <span class="total-pct">${pct}%</span>
+        <span class="open-btn">作業へ →</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ──────────────────────────────────────
+// ACTIONS
+// ──────────────────────────────────────
+function openCase(id){
+  window.location.href = '/ops.html';
+}
+
+// ── 新規登録モーダル
+function openModal(){
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('m-name').focus(), 100);
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  ['m-name','m-account','m-area','m-staff','m-note'].forEach(id=>{ document.getElementById(id).value=''; });
+}
+function registerCase(){
+  const name = document.getElementById('m-name').value.trim();
+  if(!name){ toast('店舗名を入力してください'); return; }
+  const account = document.getElementById('m-account').value.trim();
+  const area    = document.getElementById('m-area').value.trim();
+  const staff   = document.getElementById('m-staff').value.trim();
+  const note    = document.getElementById('m-note').value.trim();
+  const c = makeCase(name, account, area, staff, note, 0);
+  cases.unshift(c);
+  save();
+  closeModal();
+  renderGrid();
+  toast(`「${name}」を登録しました ✓`);
+}
+
+// ── Keyboard: ESCでモーダル閉じる
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+// ── Utils
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Init
+load();
+renderGrid();
+</script>
+</body>
+</html>

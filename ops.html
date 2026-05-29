@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snack Map Ops — 作業ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f4f0;--white:#fff;--surface:#eeeee8;--border:#e0dfd8;--border-md:#c8c7be;
+  --text:#1a1916;--text2:#5a5950;--text3:#9a9990;
+  --acc:#d4562a;--acc-l:#fdf1ed;--acc-b:#f0b8a4;
+  --blue:#2a5fd4;--blue-l:#edf1fd;--blue-b:#a4b8f0;
+  --green:#1f8c5a;--green-l:#edfaf3;--green-b:#a4dfc2;
+  --amber:#c47d0a;--amber-l:#fdf8ed;--amber-b:#f0d9a4;
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;font-size:14px;color:var(--text);background:var(--bg)}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:272px;min-width:272px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+.sb-back{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:12px;color:var(--text2);text-decoration:none;border-bottom:1px solid var(--border);transition:background .12s}
+.sb-back:hover{background:var(--surface);color:var(--text)}
+.sb-logo-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+.sb-logo{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.sb-add{padding:10px 12px;border-bottom:1px solid var(--border)}
+.sb-add-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.add-form{display:flex;flex-direction:column;gap:5px}
+.add-form input{width:100%;font-size:12px;padding:6px 10px;font-family:'Noto Sans JP',sans-serif;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);outline:none}
+.add-form input:focus{border-color:var(--border-md);background:var(--white)}
+.add-form .btn-add{width:100%;margin-top:2px;padding:6px;font-size:12px;font-family:'Noto Sans JP',sans-serif;font-weight:500;cursor:pointer;border-radius:var(--rs);border:none;background:var(--acc);color:#fff;transition:background .12s}
+.add-form .btn-add:hover{background:#be4a22}
+.add-form .btn-add:active{transform:scale(.98)}
+
+/* ── Sidebar list ── */
+.sb-list{flex:1;overflow-y:auto;padding:8px 6px}
+.sb-empty{text-align:center;padding:28px 12px;color:var(--text3);font-size:12px}
+
+/* Case block */
+.sb-case{margin-bottom:6px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.sb-case-head{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;background:var(--white);transition:background .12s}
+.sb-case-head:hover{background:var(--surface)}
+.sb-case-head.active{background:var(--acc-l)}
+.sb-case-toggle{font-size:10px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.sb-case-toggle.open{transform:rotate(90deg)}
+.sb-case-info{flex:1;min-width:0}
+.sb-case-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-case-name.active-text{color:var(--acc)}
+.sb-case-meta{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-top:2px}
+.sb-pbar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;width:50px;flex-shrink:0}
+.sb-pfill{height:100%;background:var(--acc);border-radius:2px;transition:width .3s}
+
+/* Phase + step rows inside case */
+.sb-phases{background:var(--bg);border-top:1px solid var(--border)}
+.sb-phase{padding:0}
+.sb-phase-head{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 18px;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.02em;cursor:pointer;transition:background .12s;user-select:none}
+.sb-phase-head:hover{background:var(--surface)}
+.sb-phase-icon{font-size:12px}
+.sb-phase-toggle{font-size:9px;color:var(--text3);margin-left:auto;transition:transform .2s}
+.sb-phase-toggle.open{transform:rotate(90deg)}
+.sb-phase-done{font-size:10px;color:var(--green);margin-left:auto;font-family:'DM Mono',monospace}
+.sb-steps{display:none}
+.sb-steps.open{display:block}
+.sb-step-row{display:flex;align-items:center;gap:7px;padding:5px 10px 5px 28px;font-size:12px;color:var(--text2);cursor:pointer;transition:background .12s}
+.sb-step-row:hover{background:var(--surface)}
+.sb-step-row.active-step{background:var(--acc-l);color:var(--acc);font-weight:500}
+.sb-step-dot{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--border-md);flex-shrink:0}
+.sb-step-dot.done{background:var(--green);border-color:var(--green)}
+.sb-step-dot.active{background:var(--acc);border-color:var(--acc)}
+
+/* status dot */
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sdot.todo{background:var(--text3)}
+.sdot.doing{background:var(--blue)}
+.sdot.making{background:var(--amber)}
+.sdot.done{background:var(--green)}
+
+/* ── Main ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.main-empty{display:flex;align-items:center;justify-content:center;flex:1;flex-direction:column;gap:10px;color:var(--text3)}
+.main-empty .big{font-size:40px}
+.main-empty p{font-size:13px}
+
+/* ── Wizard ── */
+.wizard{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.wiz-head{padding:16px 24px 12px;border-bottom:1px solid var(--border);background:var(--white)}
+.wiz-title-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.wiz-name{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.wiz-account{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)}
+.status-chip{font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px}
+.status-chip.todo{background:var(--surface);color:var(--text3)}
+.status-chip.doing{background:var(--blue-l);color:var(--blue)}
+.status-chip.making{background:var(--amber-l);color:var(--amber)}
+.status-chip.done{background:var(--green-l);color:var(--green)}
+
+/* Phase tabs in header */
+.phase-tabs{display:flex;gap:4px}
+.phase-tab{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text2);transition:all .12s;white-space:nowrap}
+.phase-tab:hover{background:var(--surface)}
+.phase-tab.active{background:var(--acc-l);border-color:var(--acc-b);color:var(--acc)}
+.phase-tab .pt-done{font-size:10px;color:var(--green)}
+
+/* Step strip */
+.step-strip{display:flex;align-items:center;padding:10px 24px 12px;background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;gap:0}
+.step-strip::-webkit-scrollbar{display:none}
+.step-dot-wrap{display:flex;flex-direction:column;align-items:center;cursor:pointer;min-width:32px}
+.step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);transition:all .15s;flex-shrink:0}
+.step-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.step-dot.cur{border-color:var(--acc);color:var(--acc);font-weight:700}
+.step-line{height:2px;flex:1;background:var(--border);min-width:8px;transition:background .3s}
+.step-line.done{background:var(--green)}
+
+/* Wiz body */
+.wiz-body{flex:1;overflow-y:auto;padding:24px}
+.step-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px}
+.step-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.step-num-badge{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.step-card-title{font-size:16px;font-weight:700;letter-spacing:-.02em}
+.step-done-chip{font-size:11px;padding:3px 10px;border-radius:100px;background:var(--green-l);color:var(--green);border:1px solid var(--green-b);white-space:nowrap;flex-shrink:0}
+
+/* form */
+label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px}
+input,textarea,select{width:100%;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:8px 11px;outline:none;transition:border-color .12s}
+input:focus,textarea:focus,select:focus{border-color:var(--border-md);background:var(--white)}
+textarea{resize:vertical;line-height:1.7}
+.field{margin-bottom:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-radius:var(--rs);border:1px solid var(--border-md);background:var(--white);color:var(--text);transition:all .12s}
+.btn:hover{background:var(--surface)}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn.primary:hover{background:#be4a22}
+.btn.green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.green:hover{background:#176b45}
+.btn.sm{padding:5px 12px;font-size:12px}
+.btn-row{display:flex;gap:8px;align-items:center}
+.btn-row.right{justify-content:flex-end}
+
+/* dm */
+.dm-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:14px;font-size:13px;line-height:1.85;white-space:pre-wrap;min-height:80px;color:var(--text)}
+.dm-box .hl{color:var(--acc);font-weight:700}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.pill{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text2);transition:all .12s}
+.pill:hover{border-color:var(--border-md)}
+.pill.active{background:var(--acc-l);border-color:var(--acc-b);color:var(--acc)}
+
+/* gen */
+.gen-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:14px;font-size:13px;line-height:1.85;white-space:pre-wrap;min-height:80px;color:var(--text)}
+.gen-loading{color:var(--text3);font-style:italic}
+
+/* guide */
+.guide-tab-row{display:flex;gap:6px;margin-bottom:16px}
+.gtab{padding:6px 14px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text2);transition:all .12s}
+.gtab:hover{background:var(--surface)}
+.gtab.active{background:var(--acc-l);border-color:var(--acc-b);color:var(--acc)}
+.gstep{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--bg);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:8px}
+.gnum{width:24px;height:24px;border-radius:50%;background:var(--acc);color:#fff;font-family:'DM Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.gnote{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* footer */
+.wiz-foot{padding:12px 24px;border-top:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:space-between}
+.step-info{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.auto-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:100px;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);margin-left:8px}
+
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:9px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <a href="/" class="sb-back">← ダッシュボードに戻る</a>
+    <div class="sb-head">
+      <div class="sb-logo-sub">Snack Map</div>
+      <div class="sb-logo">営業・制作ツール</div>
+    </div>
+    <div class="sb-add">
+      <div class="sb-add-label">＋ 新規案件</div>
+      <div class="add-form">
+        <input id="add-name" placeholder="店舗名" />
+        <input id="add-account" placeholder="@Instagramアカウント名" />
+        <button class="btn-add" onclick="addCase()">追加</button>
+      </div>
+    </div>
+    <div class="sb-list" id="sb-list">
+      <div class="sb-empty">店舗を追加してください</div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="main-empty">
+      <div class="big">🍪</div>
+      <p>左の一覧から案件を選択してください</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────
+// PHASE / STEP 定義
+// ──────────────────────────────────────
+const PHASES = [
+  {
+    id:'sales', label:'営業', icon:'📨',
+    steps:[
+      {id:'register',   label:'案件登録'},
+      {id:'dm-first',   label:'初回DM送信'},
+      {id:'dm-reply',   label:'返信対応'},
+    ]
+  },
+  {
+    id:'collect', label:'情報収集', icon:'📋',
+    steps:[
+      {id:'dm-image',    label:'画像依頼DM'},
+      {id:'receive-img', label:'画像受け取り・Drive保存'},
+      {id:'dm-hearing',  label:'店舗情報ヒアリング依頼'},
+      {id:'dm-recruit',  label:'求人ヒアリング依頼'},
+    ]
+  },
+  {
+    id:'make', label:'ページ制作', icon:'✨',
+    steps:[
+      {id:'gen-shop',  label:'店舗紹介文生成'},
+      {id:'gen-rec',   label:'求人文生成'},
+      {id:'input-cms', label:'管理画面入力'},
+    ]
+  },
+  {
+    id:'publish', label:'確認・公開', icon:'🚀',
+    steps:[
+      {id:'confirm-dm', label:'原稿確認依頼'},
+      {id:'fix',        label:'修正対応'},
+      {id:'publish',    label:'公開・後処理'},
+    ]
+  },
+  {
+    id:'instagram', label:'Instagram投稿', icon:'📸',
+    steps:[
+      {id:'ig-info',   label:'投稿情報の入力'},
+      {id:'ig-prompt', label:'画像プロンプト生成'},
+    ]
+  },
+];
+
+// フラットリストへ展開（全体インデックス用）
+const ALL_STEPS = PHASES.flatMap(p => p.steps.map(s => ({...s, phaseId:p.id})));
+
+// ステップIDからフラットインデックスを取得
+function stepIdx(id){ return ALL_STEPS.findIndex(s=>s.id===id); }
+
+// ──────────────────────────────────────
+// DM テンプレート
+// ──────────────────────────────────────
+const DM = {
+  first:(n,a)=>`はじめまして！\nスナックは専門情報検索&求人サイト「スナックマップ」の流通と申しますm(_ _)m\n\nスナックマップのInstagramでは全国のスナックをご紹介しています！\n\nスナック紹介アカウントで日本中のフォロワーを集める発、投稿をご覧になったお店に伺えるお客様や求職者が急増中です✨\n\nYouTubeスナックをはしご酒では、全国のスナックを紹介していて、80万回以上の動画の他1万回以上の動画が多くあります🎥\n\n${n||'〇店舗名〇'}様の投稿は素敵な投稿が多いので、ご紹介させていただけないでしょうか？\n\nご確認いただけますとお願いします🙏\n\nスナックマップ公式サイト https://www.snack-map.com/\nYouTubeスナックをはしご酒 https://youtube.com/@snack-hashigozake?feature=shared`,
+  'reply-yes':(n)=>`嬉しいご返事をいただき誠にありがとうございます✨\n\nご紹介させていただきますので、使用させる画像をいくつか3〜4枚程送っていただけますか？\n\nまた、是非素敵なお店なのでスナックマップ公式サイトにも掲載させていただけないでしょうか？📋\n\n「${n||'〇エリア〇'}」スナックの検索で上位表示される集客特化のサイトやYouTubeにも掲載させていただきます！\nYouTubeスナックをはしご酒 https://www.youtube.com/@snack-hashigozake\n・最大視聴回数80万回\n・各店舗様は掲載後多くの新規来店実績あり\n\n動画と実績をご覧くださいね🙋‍♀️`,
+  'reply-no':()=>`嬉しいご返事、ありがとうございます！\n\nご紹介させていただきますので、ご希望の画像を3,4枚程送ってください📋\n※いただいた画像はスナックマップ公式サイトでもご使用させていただきます！`,
+  form:()=>`店舗・求人ページの制作を進めておりますので、下記フォームから店舗情報のご入力をお願いいたします。\n※紹介文はこちらで作成いたしますので、各項目は「箇条書き」でご回答いただければ大丈夫です。\n\n【入力フォーム】\nhttps://docs.google.com/forms/d/e/1FAIpQLSdPeQ1Q7gcT5f_LNXbRlZOkW-9SLKc-ja5tVYxoSDzU2iNJjg/viewform\n\nどうぞよろしくお願いいたします。`,
+  hearing:()=>`こちらをコピーして入力していただければ幸いです📋\n\n① 基本情報\n・店舗名（読み仮名もあれば）\n・オープン時期\n・店舗の由来・コンセプト\n・店内の雰囲気・ムード\n・座席構成（席数含む）\n・営業日・営業時間・定休日\n\n② ママ・オーナーについて\n・ママのお名前（ニックネーム可）と簡単な経歴\n・ママの人柄・趣味・好きなお酒\n・お店を始めたきっかけ\n\n③ キャスト・スタッフについて\n・在籍人数と年齢層\n・どんなタイプの子が多い\n\n④ 料金・システム \n・基本の料金プラン\n・延長・カラオケ料金\n\n⑤ アクセス\n・最寄り駅と徒歩分数`,
+  'recruit-hearing':()=>`こちらは求人ページの質問事項です。コピーしてご回答ください📋\n\n【1】基本情報\n・店舗名・住所・最寄り駅\n・営業時間・定休日\n・業種（スナック/ラウンジ等）\n\n【2】待遇条件・報酬\n・給与・時給\n・バック内容（ドリンク・同伴等）\n・日払い・週払いの可否\n\n【3】シフト・勤務時間\n・勤務時間帯\n・週何日からOK\n・終電後の対応\n\n【4】店舗の特徴\n・お店の雰囲気\n・客層の特徴\n・ノルマ・罰則の有無\n・未経験者歓迎\n\n【5】応募方法\n・連絡先（電話・LINE等）\n・体験入店の可否`,
+  confirm:(n,a,su,ru)=>`お世話になっております！\n\n貴店の店舗・求人ページの原稿が完成しましたので、ご確認の程をよろしくお願いします📋\n\n店舗ページ\n${su||'https://www.snack-map.com/snack/〇スラッグ〇?isPreview=true'}${ru?'\n\n求人ページ\n'+ru:''}`,
+};
+
+const GUIDE = {
+  gshop:[
+    {t:'紹介文をAI生成する（「店舗紹介文生成」ステップで完了済み）',n:''},
+    {t:'管理画面にログインし、店舗追加画面を開く',n:''},
+    {t:'店舗URLを設定する',n:'東京都内は「駅名-店名」、地方は「地域-店名」'},
+    {t:'タイトル・本文・SEOタイトル・メタ説明を貼り付ける',n:'※SEO情報は公開許可後に入力'},
+    {t:'Googleマップを作成・営業時間・電話番号を入力する',n:''},
+    {t:'料金システムを入力する',n:'・基本料金・時間・TAX有無を確認・クーポンは飲み放題があれば'},
+    {t:'写真をアップロードする',n:'順序：ママ/キャスト → ドリンク/フード → カウンター → ボックス'},
+    {t:'特徴タグを該当するものすべてにチェックする',n:'多いほど絞り込み検索にヒットしやすい'},
+    {t:'内容を通しで確認する',n:'店舗名・URL・料金・写真の順序を最終チェック'},
+  ],
+  grecruit:[
+    {t:'求人文をAI生成する（「求人文生成」ステップで完了済み）',n:''},
+    {t:'管理画面で「求人ページ追加」画面を開く',n:''},
+    {t:'タイトル・本文・応募資格を貼り付ける',n:''},
+    {t:'連絡先を入力する',n:'電話番号・LINE・担当者携帯'},
+    {t:'待遇条件を入力する',n:'シフト・給与・雇用形態'},
+    {t:'タグを15個前後選択する',n:'AIが生成したタグ候補をそのまま使用可'},
+    {t:'内容を通しで確認する',n:''},
+  ],
+  gpublish:[
+    {t:'店舗・求人ページの最終確認をする',n:''},
+    {t:'「原稿確認依頼」ステップでURLを入力してDMを送る',n:'URLを入力するだけで文面が自動完成'},
+    {t:'先方からの承認返信を確認する',n:''},
+    {t:'管理画面で公開作業を行う',n:''},
+    {t:'Google Search ConsoleでURLを貼り付けてインデックス登録リクエストをする',n:''},
+    {t:'顧客スナックリストのステータスを「掲載済み」に更新する',n:''},
+  ],
+};
+
+// ──────────────────────────────────────
+// STATE
+// ──────────────────────────────────────
+let cases = [];
+let activeIdx = null;       // 選択中の案件インデックス
+let activeCaseOpenPhases = {}; // { caseId: { phaseId: bool } }
+
+function newCase(name, account){
+  return {
+    id: Date.now(),
+    name, account,
+    currentStepId: 'register',  // 現在のステップID
+    activePhaseId: 'sales',      // 現在表示中のフェーズ
+    steps: Object.fromEntries(ALL_STEPS.map(s=>[s.id, {done:false}])),
+    status:'todo',
+    genShop:'', genRec:'',
+    dmReplyType:'reply-yes',
+    dmHearingType:'form',
+    shopUrl:'', recruitUrl:'',
+    shopInput:'', recInput:'',
+    guideTab:'gshop',
+    igArea:'', igPrice:'', igAccess:'', igFeature:'', igHours:'', igMood:'',
+    igPrompt:'',
+  };
+}
+
+function getStatus(c){
+  const total = ALL_STEPS.length;
+  const done = ALL_STEPS.filter(s=>c.steps[s.id].done).length;
+  if(done===0) return 'todo';
+  if(done===total) return 'done';
+  if(c.genShop||c.genRec) return 'making';
+  return 'doing';
+}
+const STATUS_LABEL = {todo:'未着手',doing:'進行中',making:'制作中',done:'完了'};
+
+function phaseDone(c, phaseId){
+  const ph = PHASES.find(p=>p.id===phaseId);
+  return ph.steps.every(s=>c.steps[s.id].done);
+}
+function phaseProgress(c, phaseId){
+  const ph = PHASES.find(p=>p.id===phaseId);
+  return ph.steps.filter(s=>c.steps[s.id].done).length;
+}
+
+// ──────────────────────────────────────
+// CASE MANAGEMENT
+// ──────────────────────────────────────
+function addCase(){
+  const name = document.getElementById('add-name').value.trim();
+  const account = document.getElementById('add-account').value.trim();
+  if(!name){ toast('店舗名を入力してください'); return; }
+  const c = newCase(name, account);
+  cases.push(c);
+  activeCaseOpenPhases[c.id] = {sales:true, collect:false, make:false, publish:false};
+  document.getElementById('add-name').value='';
+  document.getElementById('add-account').value='';
+  activeIdx = cases.length - 1;
+  renderSidebar();
+  renderMain();
+}
+
+function selectCase(i){
+  activeIdx = i;
+  renderSidebar();
+  renderMain();
+}
+
+// ── フェーズを選択（サイドバーのフェーズ見出しクリック）
+function selectPhase(caseIdx, phaseId){
+  activeIdx = caseIdx;
+  const c = cases[caseIdx];
+  c.activePhaseId = phaseId;
+  const ph = PHASES.find(p=>p.id===phaseId);
+  const firstIncomplete = ph.steps.find(s=>!c.steps[s.id].done);
+  c.currentStepId = firstIncomplete ? firstIncomplete.id : ph.steps[0].id;
+  const opens = activeCaseOpenPhases[c.id] || {};
+  opens[phaseId] = !opens[phaseId];
+  activeCaseOpenPhases[c.id] = opens;
+  renderSidebar();
+  renderMain();
+}
+
+// ── ステップを直接選択（サイドバーのステップ行クリック）
+function selectStep(caseIdx, stepId){
+  activeIdx = caseIdx;
+  const c = cases[caseIdx];
+  const step = ALL_STEPS.find(s=>s.id===stepId);
+  c.activePhaseId = step.phaseId;
+  c.currentStepId = stepId;
+  renderSidebar();
+  renderMain();
+}
+
+// ──────────────────────────────────────
+// SIDEBAR RENDER
+// ──────────────────────────────────────
+function renderSidebar(){
+  const el = document.getElementById('sb-list');
+  if(!cases.length){ el.innerHTML='<div class="sb-empty">店舗を追加してください</div>'; return; }
+
+  el.innerHTML = cases.map((c,ci)=>{
+    const st = getStatus(c);
+    const total = ALL_STEPS.length;
+    const done = ALL_STEPS.filter(s=>c.steps[s.id].done).length;
+    const pct = Math.round(done/total*100);
+    const isActive = ci===activeIdx;
+    const opens = activeCaseOpenPhases[c.id]||{};
+
+    const phasesHTML = PHASES.map(ph=>{
+      const isOpen = opens[ph.id];
+      const pdone = phaseProgress(c, ph.id);
+      const ptotal = ph.steps.length;
+      const allDone = pdone===ptotal;
+
+      const stepsHTML = isOpen ? `<div class="sb-steps open">${
+        ph.steps.map(s=>{
+          const sdone = c.steps[s.id].done;
+          const isCur = isActive && c.currentStepId===s.id;
+          return `<div class="sb-step-row${isCur?' active-step':''}" onclick="selectStep(${ci},'${s.id}')">
+            <div class="sb-step-dot${sdone?' done':isCur?' active':''}"></div>
+            <span>${s.label}</span>
+          </div>`;
+        }).join('')
+      }</div>` : '<div class="sb-steps"></div>';
+
+      return `<div class="sb-phase">
+        <div class="sb-phase-head" onclick="selectPhase(${ci},'${ph.id}')">
+          <span class="sb-phase-icon">${ph.icon}</span>
+          <span>${ph.label}</span>
+          ${allDone
+            ? `<span class="sb-phase-done" style="margin-left:auto">✓ 完了</span>`
+            : `<span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:'DM Mono',monospace">${pdone}/${ptotal}</span>`
+          }
+          <span class="sb-phase-toggle${isOpen?' open':''}">▶</span>
+        </div>
+        ${stepsHTML}
+      </div>`;
+    }).join('');
+
+    return `<div class="sb-case">
+      <div class="sb-case-head${isActive?' active':''}" onclick="selectCase(${ci})">
+        <div class="sdot ${st}"></div>
+        <div class="sb-case-info">
+          <div class="sb-case-name${isActive?' active-text':''}">${c.name}</div>
+          <div class="sb-case-meta">
+            <span>${STATUS_LABEL[st]}</span>
+            <div class="sb-pbar"><div class="sb-pfill" style="width:${pct}%"></div></div>
+            <span>${done}/${total}</span>
+          </div>
+        </div>
+      </div>
+      ${isActive ? `<div class="sb-phases">${phasesHTML}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────
+// MAIN RENDER
+// ──────────────────────────────────────
+function renderMain(){
+  if(activeIdx===null){
+    document.getElementById('main').innerHTML=`<div class="main-empty"><div class="big">🍪</div><p>左の一覧から案件を選択してください</p></div>`;
+    return;
+  }
+  const c = cases[activeIdx];
+  const st = getStatus(c);
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  const phSteps = ph.steps;
+  const curStepInPhase = phSteps.findIndex(s=>s.id===c.currentStepId);
+  const curSi = curStepInPhase >= 0 ? curStepInPhase : 0;
+
+  // フェーズタブ
+  const phaseTabsHTML = PHASES.map(p=>{
+    const done = phaseDone(c, p.id);
+    const isAct = p.id===c.activePhaseId;
+    return `<div class="phase-tab${isAct?' active':''}" onclick="switchPhase('${p.id}')">
+      ${p.icon} ${p.label}
+      ${done?`<span class="pt-done">✓</span>`:''}
+    </div>`;
+  }).join('');
+
+  // ステップストリップ（フェーズ内のステップ）
+  const stripHTML = phSteps.map((s,i)=>{
+    const done = c.steps[s.id].done;
+    const isCur = i===curSi;
+    const line = i<phSteps.length-1
+      ? `<div class="step-line${done?' done':''}"></div>` : '';
+    return `<div class="step-dot-wrap" onclick="jumpStep(${i})" title="${s.label}">
+      <div class="step-dot${done?' done':isCur?' cur':''}">${done?'✓':(i+1)}</div>
+    </div>${line}`;
+  }).join('');
+
+  const stepContent = renderStepContent(c, c.currentStepId);
+  const isFirst = curSi===0;
+  const isLast = curSi===phSteps.length-1;
+
+  document.getElementById('main').innerHTML = `
+  <div class="wizard">
+    <div class="wiz-head">
+      <div class="wiz-title-row">
+        <div class="wiz-name">${c.name}</div>
+        ${c.account?`<div class="wiz-account">@${c.account}</div>`:''}
+        <span class="status-chip ${st}">${STATUS_LABEL[st]}</span>
+      </div>
+      <div class="phase-tabs">${phaseTabsHTML}</div>
+    </div>
+    <div class="step-strip">${stripHTML}</div>
+    <div class="wiz-body" id="wiz-body">${stepContent}</div>
+    <div class="wiz-foot">
+      <button class="btn sm" onclick="prevStep()" ${isFirst?'disabled style="opacity:.4;cursor:default"':''}>← 戻る</button>
+      <span class="step-info">${ph.label} › STEP ${curSi+1}/${phSteps.length}「${phSteps[curSi].label}」</span>
+      ${isLast
+        ? `<button class="btn green sm" onclick="completePhase()">このフェーズを完了 →</button>`
+        : `<button class="btn primary sm" onclick="nextStep()">次のステップへ →</button>`
+      }
+    </div>
+  </div>`;
+}
+
+// ──────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────
+function switchPhase(phaseId){
+  const c = cases[activeIdx];
+  c.activePhaseId = phaseId;
+  const ph = PHASES.find(p=>p.id===phaseId);
+  const first = ph.steps.find(s=>!c.steps[s.id].done) || ph.steps[0];
+  c.currentStepId = first.id;
+  const opens = activeCaseOpenPhases[c.id]||{};
+  opens[phaseId] = true;
+  activeCaseOpenPhases[c.id] = opens;
+  renderSidebar();
+  renderMain();
+}
+
+function jumpStep(idxInPhase){
+  const c = cases[activeIdx];
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  c.currentStepId = ph.steps[idxInPhase].id;
+  renderSidebar();
+  renderMain();
+}
+
+function nextStep(){
+  const c = cases[activeIdx];
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  const cur = ph.steps.findIndex(s=>s.id===c.currentStepId);
+  if(cur < ph.steps.length-1){
+    c.currentStepId = ph.steps[cur+1].id;
+    renderSidebar();
+    renderMain();
+  }
+}
+
+function prevStep(){
+  const c = cases[activeIdx];
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  const cur = ph.steps.findIndex(s=>s.id===c.currentStepId);
+  if(cur > 0){
+    c.currentStepId = ph.steps[cur-1].id;
+    renderSidebar();
+    renderMain();
+  }
+}
+
+function markDone(stepId){
+  cases[activeIdx].steps[stepId].done = true;
+  renderSidebar();
+}
+
+function markDoneAndNext(stepId){
+  const c = cases[activeIdx];
+  c.steps[stepId].done = true;
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  const cur = ph.steps.findIndex(s=>s.id===stepId);
+  if(cur < ph.steps.length-1){
+    c.currentStepId = ph.steps[cur+1].id;
+  }
+  renderSidebar();
+  renderMain();
+}
+
+function completePhase(){
+  const c = cases[activeIdx];
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  ph.steps.forEach(s=>{ c.steps[s.id].done=true; });
+  const phIdx = PHASES.findIndex(p=>p.id===c.activePhaseId);
+  if(phIdx < PHASES.length-1){
+    const next = PHASES[phIdx+1];
+    c.activePhaseId = next.id;
+    c.currentStepId = next.steps[0].id;
+    const opens = activeCaseOpenPhases[c.id]||{};
+    opens[next.id] = true;
+    activeCaseOpenPhases[c.id] = opens;
+    toast(`「${ph.label}」完了！「${next.label}」へ進みます →`);
+  } else {
+    toast('すべてのフェーズが完了しました！ 🎉');
+  }
+  renderSidebar();
+  renderMain();
+}
+
+// ──────────────────────────────────────
+// COPY & AUTO-MARK
+// ──────────────────────────────────────
+function copyAndMark(txt, stepId){
+  navigator.clipboard.writeText(txt).then(()=>{
+    markDoneAndNext(stepId);
+    toast('コピーしました。ステップを完了にしました ✓');
+  }).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    markDoneAndNext(stepId);
+    toast('コピーしました。ステップを完了にしました ✓');
+  });
+}
+
+// ──────────────────────────────────────
+// STEP CONTENT
+// ──────────────────────────────────────
+function renderStepContent(c, stepId){
+  const step = ALL_STEPS.find(s=>s.id===stepId);
+  const ph = PHASES.find(p=>p.id===c.activePhaseId);
+  const idxInPhase = ph.steps.findIndex(s=>s.id===stepId);
+  const done = c.steps[stepId]?.done;
+  const doneChip = done?`<span class="step-done-chip">✓ 完了済み</span>`:'';
+
+  const header=(title,desc='')=>`<div class="step-card">
+    <div class="step-card-header">
+      <div>
+        <div class="step-num-badge">STEP ${idxInPhase+1} › ${ph.label}</div>
+        <div class="step-card-title">${title}</div>
+        ${desc?`<p style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.7">${desc}</p>`:''}
+      </div>
+      ${doneChip}
+    </div>`;
+  const foot=`</div>`;
+
+  switch(stepId){
+
+    case 'register':
+      return header('案件登録','店舗名・アカウント名を確認してください。修正したい場合はここで変更できます。')+`
+        <div class="row2">
+          <div class="field"><label>店舗名</label><input value="${c.name}" oninput="cases[activeIdx].name=this.value;renderSidebar()" /></div>
+          <div class="field"><label>Instagramアカウント名</label><input value="${c.account||''}" oninput="cases[activeIdx].account=this.value;renderSidebar()" /></div>
+        </div>
+        <div class="btn-row right"><button class="btn primary" onclick="markDoneAndNext('register')">登録して次へ →</button></div>`+foot;
+
+    case 'dm-first':{
+      const txt = DM.first(c.name, c.account);
+      const hl = escHTML(txt).replace(escHTML(c.name||'__'),'<span class="hl">'+escHTML(c.name)+'</span>');
+      return header('初回DM送信','店舗名が自動で差し込まれています。コピーしてInstagramのDMで送信してください。')+`
+        <div class="dm-box">${hl}</div>
+        <div class="btn-row right" style="margin-top:10px">
+          <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(txt)},'dm-first')">📋 コピーして送信済みにする</button>
+        </div>`+foot;
+    }
+
+    case 'dm-reply':{
+      const cur = c.dmReplyType||'reply-yes';
+      const txt = DM[cur](c.name);
+      const hl = escHTML(txt).replace(escHTML(c.name||'__'),'<span class="hl">'+escHTML(c.name)+'</span>');
+      return header('返信対応','返信内容に応じて文面を選択し、コピーして送信してください。')+`
+        <div class="pill-row">
+          <div class="pill${cur==='reply-yes'?' active':''}" onclick="setReplyType('reply-yes')">返信あり〜「いいね」記事あり</div>
+          <div class="pill${cur==='reply-no'?' active':''}" onclick="setReplyType('reply-no')">返信あり〜「いいね」記事なし</div>
+        </div>
+        <div class="dm-box" id="reply-box">${hl}</div>
+        <div class="btn-row right" style="margin-top:10px">
+          <button class="btn primary sm" onclick="copyReplyAndMark()">📋 コピーして送信済みにする</button>
+        </div>`+foot;
+    }
+
+    case 'dm-image':
+      return header('画像依頼DM','返信時に画像依頼が含まれています。先方から3〜4枚届くまで待ちます。')+`
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px">使用する画像：ママ/キャストの写真 / 店舗内写真 / ドリンクのアイテム / 装飾きれいな写真 / お店の雰囲気が伝わる写真</p>
+        <div class="btn-row right"><button class="btn primary" onclick="markDoneAndNext('dm-image')">画像を受け取った →</button></div>`+foot;
+
+    case 'receive-img':
+      return header('画像受け取り・Drive保存',`受け取った画像をGoogle Driveの「店舗」フォルダに保存してください。`)+`
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px">保存先：Google Drive ＞ 店舗 ＞ <strong>${c.name||'〇店舗名〇'}</strong></p>
+        <div class="btn-row right"><button class="btn primary" onclick="markDoneAndNext('receive-img')">保存完了 →</button></div>`+foot;
+
+    case 'dm-hearing':{
+      const cur = c.dmHearingType||'form';
+      const txt = DM[cur]?DM[cur](c.name,c.account):'';
+      return header('店舗情報ヒアリング依頼','先方に店舗情報の入力・回答を依頼します。')+`
+        <div class="pill-row">
+          <div class="pill${cur==='form'?' active':''}" onclick="setHearingType('form')">フォームで依頼</div>
+          <div class="pill${cur==='hearing'?' active':''}" onclick="setHearingType('hearing')">ヒアリング項目をDMで送る</div>
+        </div>
+        <div class="dm-box" id="hearing-box">${escHTML(txt)}</div>
+        <div class="btn-row right" style="margin-top:10px">
+          <button class="btn primary sm" onclick="copyHearingAndMark()">📋 コピーして送信済みにする</button>
+        </div>`+foot;
+    }
+
+    case 'dm-recruit':{
+      const txt = DM['recruit-hearing']();
+      return header('求人ヒアリング依頼','求人ページを制作する場合は、求人情報のヒアリング項目を送ります。')+`
+        <div class="dm-box">${escHTML(txt)}</div>
+        <div class="btn-row right" style="margin-top:10px">
+          <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(txt)},'dm-recruit')">📋 コピーして送信済みにする</button>
+          <button class="btn sm" onclick="markDoneAndNext('dm-recruit')" style="color:var(--text3)">求人ページは不要</button>
+        </div>`+foot;
+    }
+
+    case 'gen-shop':
+      return header('店舗紹介文 AI生成','ヒアリング回答をそのまま貼り付けてボタンを押すだけ。タイトル5案・紹介文・SEO文を自動生成します。')+`
+        <div class="field"><label>店舗名</label><input id="gs-name" value="${c.name}" /></div>
+        <div class="field"><label>ヒアリング内容（先方のDM回答をそのまま貼り付けてOK）</label>
+          <textarea id="gs-input" rows="7" placeholder="例：&#10;エリア：大阪・難波&#10;ママ：チャーミングで話好きのベテランママ&#10;店内：アンティークな雰囲気で落ち着く内装&#10;キャスト：20〜30代のチャーミングな子が多い&#10;料金：飲み放題90分3,000円〜">${c.shopInput||''}</textarea>
+        </div>
+        <div class="btn-row right"><button class="btn primary" onclick="generateShop()">✨ 紹介文を生成する</button></div>
+        ${c.genShop?`<div style="margin-top:14px">
+          <label>生成結果 <span class="auto-tag">✦ ステータスが「制作中」に自動更新済み</span></label>
+          <div class="gen-box">${escHTML(c.genShop)}</div>
+          <div class="btn-row right" style="margin-top:8px">
+            <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(c.genShop)},'gen-shop')">📋 コピーして完了にする</button>
+          </div></div>`:'<div id="gs-output"></div>'}`+foot;
+
+    case 'gen-rec':
+      return header('求人文 AI生成','求人ヒアリング回答を貼り付けてボタンを押すだけ。求人本文・タグ候補15個を自動生成します。')+`
+        <div class="field"><label>店舗名</label><input id="gr-name" value="${c.name}" /></div>
+        <div class="field"><label>求人ヒアリング内容</label>
+          <textarea id="gr-input" rows="7" placeholder="例：&#10;時給：2,000円〜&#10;体験入店時給：2,500円&#10;勤務時間：20:00〜24:00&#10;週1日からOK・日払い可&#10;未経験歓迎・ノルマなし">${c.recInput||''}</textarea>
+        </div>
+        <div class="btn-row right"><button class="btn primary" onclick="generateRec()">✨ 求人文を生成する</button></div>
+        ${c.genRec?`<div style="margin-top:14px">
+          <label>生成結果</label>
+          <div class="gen-box">${escHTML(c.genRec)}</div>
+          <div class="btn-row right" style="margin-top:8px">
+            <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(c.genRec)},'gen-rec')">📋 コピーして完了にする</button>
+          </div></div>`:'<div id="gr-output"></div>'}`+foot;
+
+    case 'input-cms':{
+      const gt = c.guideTab||'gshop';
+      const tabs=[['gshop','店舗ページ制作'],['grecruit','求人ページ制作'],['gpublish','公開・後処理']];
+      const tabsHTML = tabs.map(([k,l])=>`<div class="gtab${gt===k?' active':''}" onclick="setGuideTab('${k}')">${l}</div>`).join('');
+      const stepsHTML = GUIDE[gt].map((s,i)=>`<div class="gstep"><div class="gnum">${i+1}</div><div><div style="font-size:13px;line-height:1.7">${s.t}</div>${s.n?`<div class="gnote">${s.n}</div>`:''}</div></div>`).join('');
+      return header('管理画面入力 &amp; ページ制作','手順を確認しながら管理画面への入力・ページ制作を進めてください。')+`
+        <div class="guide-tab-row">${tabsHTML}</div>
+        <div id="guide-steps">${stepsHTML}</div>
+        <div class="btn-row right" style="margin-top:14px">
+          <button class="btn primary" onclick="markDoneAndNext('input-cms')">制作完了 →</button>
+        </div>`+foot;
+    }
+
+    case 'confirm-dm':{
+      const txt = DM.confirm(c.name,c.account,c.shopUrl||'',c.recruitUrl||'');
+      return header('原稿確認依頼 DM送信','URLを入力するだけで確認依頼文が自動で完成します。')+`
+        <div class="row2" style="margin-bottom:12px">
+          <div class="field"><label>店舗ページ URL</label><input id="cf-shop" value="${c.shopUrl||''}" placeholder="https://www.snack-map.com/snack/...?isPreview=true" oninput="cases[activeIdx].shopUrl=this.value;refreshConfirmDM()" /></div>
+          <div class="field"><label>求人ページ URL（任意）</label><input id="cf-rec" value="${c.recruitUrl||''}" placeholder="https://www.snack-map.com/recruit/...?isPreview=true" oninput="cases[activeIdx].recruitUrl=this.value;refreshConfirmDM()" /></div>
+        </div>
+        <div class="dm-box" id="confirm-dm-box">${escHTML(txt)}</div>
+        <div class="btn-row right" style="margin-top:10px">
+          <button class="btn primary sm" onclick="copyConfirmAndMark()">📋 コピーして送信済みにする</button>
+        </div>`+foot;
+    }
+
+    case 'fix':
+      return header('修正対応','先方から修正依頼が来た場合は内容を確認して修正します。修正がなければスキップできます。')+`
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn sm" onclick="markDoneAndNext('fix')" style="color:var(--text3)">修正なし（スキップ）</button>
+          <button class="btn primary" onclick="markDoneAndNext('fix')">修正完了 →</button>
+        </div>`+foot;
+
+    case 'publish':
+      return header('公開・後処理','すべての作業が完了したらフェーズを完了にしてください。')+`
+        <div class="gstep"><div class="gnum">1</div><div><div style="font-size:13px">管理画面で公開作業を行う</div></div></div>
+        <div class="gstep"><div class="gnum">2</div><div><div style="font-size:13px">Google Search ConsoleでURLを貼り付けてインデックス登録リクエストをする</div></div></div>
+        <div class="gstep"><div class="gnum">3</div><div><div style="font-size:13px">顧客スナックリストのステータスを「掲載済み」に更新する</div></div></div>
+        <div class="btn-row right" style="margin-top:14px">
+          <button class="btn green" onclick="completePhase()">✅ 公開・案件完了</button>
+        </div>`+foot;
+
+    case 'ig-info':
+      return header('投稿情報の入力','ChatGPTへの画像生成プロンプトに差し込む店舗情報を入力してください。')+`
+        <div class="row2">
+          <div class="field"><label>店舗名</label><input id="ig-name" value="${c.name}" oninput="cases[activeIdx].name=this.value" /></div>
+          <div class="field"><label>エリア・最寄り駅</label><input id="ig-area" value="${c.igArea||''}" placeholder="例：大阪・難波駅徒歩3分" oninput="cases[activeIdx].igArea=this.value" /></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>料金・システム </label><input id="ig-price" value="${c.igPrice||''}" placeholder="例：飲み放題90分3,000円〜" oninput="cases[activeIdx].igPrice=this.value" /></div>
+          <div class="field"><label>営業時間</label><input id="ig-hours" value="${c.igHours||''}" placeholder="例：毎日20:00〜翌2:00" oninput="cases[activeIdx].igHours=this.value" /></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>お店の特徴・キャッチ</label><input id="ig-feature" value="${c.igFeature||''}" placeholder="例：カラオケあり・ママが優しい・初心者歓迎" oninput="cases[activeIdx].igFeature=this.value" /></div>
+          <div class="field"><label>雰囲気・店内イメージ</label><input id="ig-mood" value="${c.igMood||''}" placeholder="例：アンティーク・シックで落ち着いた和の秘密" oninput="cases[activeIdx].igMood=this.value" /></div>
+        </div>
+        <div class="btn-row right" style="margin-top:4px">
+          <button class="btn primary" onclick="saveIgInfoAndNext()">保存して次へ →</button>
+        </div>`+foot;
+
+    case 'ig-prompt':
+      return header('Instagram画像プロンプト生成','入力した店舗情報をもとに、ChatGPT（DALL-E）に渡す画像生成プロンプトを自動で生成します。')+`
+        <div class="btn-row right" style="margin-bottom:12px">
+          <button class="btn primary" onclick="generateIgPrompt()">✨ プロンプトを生成する</button>
+        </div>
+        ${c.igPrompt ? `
+        <div class="field"><label>生成されたプロンプト <span style="font-size:11px;color:var(--text3);font-weight:400">→ このテキストをそのままChatGPTに貼り付けてください</span></label>
+          <div class="gen-box" id="ig-prompt-box">${escHTML(c.igPrompt)}</div>
+        </div>
+        <div class="btn-row right" style="margin-top:8px">
+          <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(c.igPrompt)},'ig-prompt')">📋 コピーして完了にする</button>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--rs);font-size:12px;color:var(--amber);line-height:1.8">
+          <strong>💡 ChatGPTへの貼り付け手順</strong><br>
+          1. ChatGPTを開く（GPT-4oまたはDALL-E対応モデル）<br>
+          2. 上のプロンプトをコピーしてそのまま送信<br>
+          3. 生成された画像をダウンロードしてInstagramに投稿
+        </div>` : `<div class="gen-box" style="color:var(--text3);font-style:italic">「プロンプトを生成する」ボタンを押してください</div>`}
+      `+foot;
+
+    default:
+      return header(step?.label||stepId)+`<p style="color:var(--text3)">コンテンツ準備中</p>`+foot;
+  }
+}
+
+// ──────────────────────────────────────
+// DM ACTIONS
+// ──────────────────────────────────────
+function setReplyType(v){
+  const c=cases[activeIdx];
+  c.dmReplyType=v;
+  const txt=DM[v](c.name);
+  const box=document.getElementById('reply-box');
+  if(box){ box.innerHTML=escHTML(txt).replace(escHTML(c.name||'__'),'<span class="hl">'+escHTML(c.name)+'</span>'); }
+  document.querySelectorAll('.pill').forEach(p=>{
+    p.classList.toggle('active',(v==='reply-yes'&&p.textContent.includes('いいね'))||(v==='reply-no'&&p.textContent.includes('なし')));
+  });
+}
+function copyReplyAndMark(){
+  const c=cases[activeIdx];
+  const txt=DM[c.dmReplyType||'reply-yes'](c.name);
+  copyAndMark(txt,'dm-reply');
+}
+function setHearingType(v){
+  const c=cases[activeIdx];
+  c.dmHearingType=v;
+  const txt=DM[v]?DM[v](c.name,c.account):'';
+  const box=document.getElementById('hearing-box');
+  if(box) box.innerHTML=escHTML(txt);
+  document.querySelectorAll('.pill').forEach(p=>{
+    p.classList.toggle('active',(v==='form'&&p.textContent.includes('フォーム'))||(v==='hearing'&&p.textContent.includes('ヒアリング項目')));
+  });
+}
+function copyHearingAndMark(){
+  const c=cases[activeIdx];
+  const txt=DM[c.dmHearingType||'form'](c.name,c.account);
+  copyAndMark(txt,'dm-hearing');
+}
+function refreshConfirmDM(){
+  const c=cases[activeIdx];
+  const txt=DM.confirm(c.name,c.account,c.shopUrl||'',c.recruitUrl||'');
+  const box=document.getElementById('confirm-dm-box');
+  if(box) box.textContent=txt;
+}
+function copyConfirmAndMark(){
+  const c=cases[activeIdx];
+  const txt=DM.confirm(c.name,c.account,c.shopUrl||'',c.recruitUrl||'');
+  copyAndMark(txt,'confirm-dm');
+}
+
+// ──────────────────────────────────────
+// AI GENERATE
+// ──────────────────────────────────────
+const SHOP_PROMPT=`あなたは全国のスナックをご紹介するポータルサイト「スナックマップ」の店舗紹介文を作成する優秀なWebライター兼マーケターです。
+以下の店舗情報をもとに、来店につながりやすい店舗タイトルと紹介文を作成してください。
+
+出力フォーマット:
+【タイトル候補5案】
+1.
+2.
+3.
+4.
+5.
+
+【店舗紹介文】
+（700文字前後、自然な文章）
+
+【SEOタイトル】
+（32文字前後）
+
+【SEOメタディスクリプション】
+（120文字前後）
+
+店舗情報：`;
+
+const REC_PROMPT=`あなたは全国のスナックをご紹介するポータルサイト「スナックマップ」の求人ページを作成する優秀なWebライター兼求人マーケターです。
+以下の求人情報をもとに、未経験者でも安心して応募できる求人ページを作成してください。
+
+出力フォーマット:
+【タイトル】
+【本文】（冒頭キャッチ・給与待遇・シフト・衣装・お店の特徴・応募方法）
+【応募資格】
+【タグ候補（15個前後）】
+
+求人情報：`;
+
+async function generateShop(){
+  const c=cases[activeIdx];
+  const name=document.getElementById('gs-name')?.value.trim()||c.name;
+  const info=document.getElementById('gs-input')?.value.trim()||'';
+  if(!info){ toast('ヒアリング内容を入力してください'); return; }
+  c.shopInput=info;
+  const outEl=document.getElementById('gs-output');
+  if(outEl){ outEl.innerHTML='<div class="gen-box"><span class="gen-loading">生成中です…</span></div>'; }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,
+        messages:[{role:'user',content:SHOP_PROMPT+`\n\n店舗名：${name}\n${info}`}]})
+    });
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('')||'エラーが発生しました';
+    c.genShop=text;
+    toast('生成完了！ステータスが「制作中」に自動更新します ✦');
+    renderSidebar();
+    renderMain();
+  }catch(e){
+    if(outEl) outEl.innerHTML=`<div class="gen-box">通信エラー: ${e.message}</div>`;
+  }
+}
+
+async function generateRec(){
+  const c=cases[activeIdx];
+  const name=document.getElementById('gr-name')?.value.trim()||c.name;
+  const info=document.getElementById('gr-input')?.value.trim()||'';
+  if(!info){ toast('ヒアリング内容を入力してください'); return; }
+  c.recInput=info;
+  const outEl=document.getElementById('gr-output');
+  if(outEl){ outEl.innerHTML='<div class="gen-box"><span class="gen-loading">生成中です…</span></div>'; }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,
+        messages:[{role:'user',content:REC_PROMPT+`\n\n店舗名：${name}\n${info}`}]})
+    });
+    const data=await res.json();
+    const text=data.content?.map(b=>b.text||'').join('')||'エラーが発生しました';
+    c.genRec=text;
+    toast('生成完了！ ✦');
+    renderSidebar();
+    renderMain();
+  }catch(e){
+    if(outEl) outEl.innerHTML=`<div class="gen-box">通信エラー: ${e.message}</div>`;
+  }
+}
+
+// ──────────────────────────────────────
+// INSTAGRAM 投稿プロンプト
+// ──────────────────────────────────────
+function saveIgInfoAndNext(){
+  const c = cases[activeIdx];
+  c.igArea    = document.getElementById('ig-area')?.value.trim()    || c.igArea;
+  c.igPrice   = document.getElementById('ig-price')?.value.trim()   || c.igPrice;
+  c.igHours   = document.getElementById('ig-hours')?.value.trim()   || c.igHours;
+  c.igFeature = document.getElementById('ig-feature')?.value.trim() || c.igFeature;
+  c.igMood    = document.getElementById('ig-mood')?.value.trim()    || c.igMood;
+  markDoneAndNext('ig-info');
+}
+
+async function generateIgPrompt(){
+  const c = cases[activeIdx];
+  const sysPrompt = `あなたはSNSマーケターです。
+スナックの店舗情報をもとに、ChatGPT（DALL-E）でInstagram投稿用の画像を生成するための英語プロンプトを作成してください。
+
+【画像の仕様・ルール】
+- Instagram正方形フォーマット（1:1）
+- 1枚目：店舗情報テキストを画像に溶け込ませたデザイン画像
+- スタイル：高級感のある夜の雰囲気、暖色系の秘密、大人のための落ち着いたムード
+- ブランド：エレガントな日本語テキストを画像に溶け込む
+- デザインは毎回統一されたムード（スナックマップのブランドカラー）
+- テキストレイアウト：上部に店舗名・中段に特徴・料金・下部にエリア・アクセス
+
+【出力形式】
+英語プロンプト（DALL-Eにそのまま貼り付けられる形式）とその日本語訳の両方を出力してください。
+
+フォーマット：
+【英語プロンプト（ChatGPTへの貼り付け用）】
+（ここに英語プロンプト）
+
+【日本語訳（内容確認用）】
+（ここに日本語訳）
+
+【Instagram投稿用キャプション（日本語）】
+（ここにInstagramのキャプション文・ハッシュタグ含む）
+
+店舗情報：`;
+
+  const info = `店舗名：${c.name||'未入力'}
+エリア・アクセス：${c.igArea||'未入力'}
+料金・システム：${c.igPrice||'未入力'}
+営業時間：${c.igHours||'未入力'}
+お店の特徴：${c.igFeature||'未入力'}
+雰囲気・店内：${c.igMood||'未入力'}`;
+
+  const box = document.getElementById('ig-prompt-box');
+  if(box){ box.innerHTML='<span class="gen-loading">生成中です…</span>'; }
+  else {
+    c.igPrompt = '生成中…';
+    renderMain();
+  }
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens:1200,
+        messages:[{role:'user', content: sysPrompt + '\n\n' + info}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||'').join('') || 'エラーが発生しました';
+    c.igPrompt = text;
+    toast('プロンプト生成完了！ChatGPTに貼り付けてください ✦');
+    renderMain();
+  }catch(e){
+    c.igPrompt = '通信エラー: ' + e.message;
+    renderMain();
+  }
+}
+
+// ──────────────────────────────────────
+// GUIDE TAB
+// ──────────────────────────────────────
+function setGuideTab(key){
+  cases[activeIdx].guideTab=key;
+  document.querySelectorAll('.gtab').forEach(t=>{
+    t.classList.toggle('active',
+      (key==='gshop'&&t.textContent.includes('店舗'))||
+      (key==='grecruit'&&t.textContent.includes('求人'))||
+      (key==='gpublish'&&t.textContent.includes('公開'))
+    );
+  });
+  const el=document.getElementById('guide-steps');
+  if(el) el.innerHTML=GUIDE[key].map((s,i)=>`<div class="gstep"><div class="gnum">${i+1}</div><div><div style="font-size:13px;line-height:1.7">${s.t}</div>${s.n?`<div class="gnote">${s.n}</div>`:''}</div></div>`).join('');
+}
+
+// ──────────────────────────────────────
+// UTILS
+// ──────────────────────────────────────
+function escHTML(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
