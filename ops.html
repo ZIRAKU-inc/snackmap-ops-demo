@@ -606,20 +606,35 @@ function completePhase(){
 // ──────────────────────────────────────
 // COPY & AUTO-MARK
 // ──────────────────────────────────────
-function copyAndMark(txt, stepId){
-  navigator.clipboard.writeText(txt).then(()=>{
-    markDoneAndNext(stepId);
-    toast('コピーしました。ステップを完了にしました ✓');
-  }).catch(()=>{
-    const ta = document.createElement('textarea');
-    ta.value = txt;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    markDoneAndNext(stepId);
-    toast('コピーしました。ステップを完了にしました ✓');
-  });
+function getStepText(stepId){
+  const c = cases[activeIdx];
+  switch(stepId){
+    case 'dm-first':   return DM.first(c.name, c.account);
+    case 'dm-reply':   return DM[c.dmReplyType||'reply-yes'](c.name);
+    case 'dm-hearing': return DM[c.dmHearingType||'form'](c.name, c.account);
+    case 'dm-recruit': return DM['recruit-hearing']();
+    case 'confirm-dm': return DM.confirm(c.name, c.account, c.shopUrl||'', c.recruitUrl||'');
+    case 'gen-shop':   return c.genShop||'';
+    case 'gen-rec':    return c.genRec||'';
+    case 'ig-prompt':  return c.igPrompt||'';
+    default: return '';
+  }
+}
+
+function copyAndMark(stepId){
+  const txt = getStepText(stepId);
+  const done = ()=>{ markDoneAndNext(stepId); toast('コピーしました。ステップを完了にしました ✓'); };
+  const fallback = ()=>{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }catch(e){}
+    done();
+  };
+  if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(done).catch(fallback); }
+  else{ fallback(); }
 }
 
 // ──────────────────────────────────────
@@ -659,7 +674,7 @@ function renderStepContent(c, stepId){
       return header('初回DM送信','店舗名が自動で差し込まれています。コピーしてInstagramのDMで送信してください。')+`
         <div class="dm-box">${hl}</div>
         <div class="btn-row right" style="margin-top:10px">
-          <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(txt)},'dm-first')">📋 コピーして送信済みにする</button>
+          <button class="btn primary sm" onclick="copyAndMark('dm-first')">📋 コピーして送信済みにする</button>
         </div>`+foot;
     }
 
@@ -707,7 +722,7 @@ function renderStepContent(c, stepId){
       return header('求人ヒアリング依頼','求人ページを制作する場合は、求人情報のヒアリング項目を送ります。')+`
         <div class="dm-box">${escHTML(txt)}</div>
         <div class="btn-row right" style="margin-top:10px">
-          <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(txt)},'dm-recruit')">📋 コピーして送信済みにする</button>
+          <button class="btn primary sm" onclick="copyAndMark('dm-recruit')">📋 コピーして送信済みにする</button>
           <button class="btn sm" onclick="markDoneAndNext('dm-recruit')" style="color:var(--text3)">求人ページは不要</button>
         </div>`+foot;
     }
@@ -723,7 +738,7 @@ function renderStepContent(c, stepId){
           <label>生成結果 <span class="auto-tag">✦ ステータスが「制作中」に自動更新済み</span></label>
           <div class="gen-box">${escHTML(c.genShop)}</div>
           <div class="btn-row right" style="margin-top:8px">
-            <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(c.genShop)},'gen-shop')">📋 コピーして完了にする</button>
+            <button class="btn primary sm" onclick="copyAndMark('gen-shop')">📋 コピーして完了にする</button>
           </div></div>`:'<div id="gs-output"></div>'}`+foot;
 
     case 'gen-rec':
@@ -737,7 +752,7 @@ function renderStepContent(c, stepId){
           <label>生成結果</label>
           <div class="gen-box">${escHTML(c.genRec)}</div>
           <div class="btn-row right" style="margin-top:8px">
-            <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(c.genRec)},'gen-rec')">📋 コピーして完了にする</button>
+            <button class="btn primary sm" onclick="copyAndMark('gen-rec')">📋 コピーして完了にする</button>
           </div></div>`:'<div id="gr-output"></div>'}`+foot;
 
     case 'input-cms':{
@@ -810,7 +825,7 @@ function renderStepContent(c, stepId){
           <div class="gen-box" id="ig-prompt-box">${escHTML(c.igPrompt)}</div>
         </div>
         <div class="btn-row right" style="margin-top:8px">
-          <button class="btn primary sm" onclick="copyAndMark(${JSON.stringify(c.igPrompt)},'ig-prompt')">📋 コピーして完了にする</button>
+          <button class="btn primary sm" onclick="copyAndMark('ig-prompt')">📋 コピーして完了にする</button>
         </div>
         <div style="margin-top:16px;padding:14px;background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--rs);font-size:12px;color:var(--amber);line-height:1.8">
           <strong>💡 ChatGPTへの貼り付け手順</strong><br>
@@ -838,11 +853,7 @@ function setReplyType(v){
     p.classList.toggle('active',(v==='reply-yes'&&p.textContent.includes('いいね'))||(v==='reply-no'&&p.textContent.includes('なし')));
   });
 }
-function copyReplyAndMark(){
-  const c=cases[activeIdx];
-  const txt=DM[c.dmReplyType||'reply-yes'](c.name);
-  copyAndMark(txt,'dm-reply');
-}
+function copyReplyAndMark(){ copyAndMark('dm-reply'); }
 function setHearingType(v){
   const c=cases[activeIdx];
   c.dmHearingType=v;
@@ -853,22 +864,14 @@ function setHearingType(v){
     p.classList.toggle('active',(v==='form'&&p.textContent.includes('フォーム'))||(v==='hearing'&&p.textContent.includes('ヒアリング項目')));
   });
 }
-function copyHearingAndMark(){
-  const c=cases[activeIdx];
-  const txt=DM[c.dmHearingType||'form'](c.name,c.account);
-  copyAndMark(txt,'dm-hearing');
-}
+function copyHearingAndMark(){ copyAndMark('dm-hearing'); }
 function refreshConfirmDM(){
   const c=cases[activeIdx];
   const txt=DM.confirm(c.name,c.account,c.shopUrl||'',c.recruitUrl||'');
   const box=document.getElementById('confirm-dm-box');
   if(box) box.textContent=txt;
 }
-function copyConfirmAndMark(){
-  const c=cases[activeIdx];
-  const txt=DM.confirm(c.name,c.account,c.shopUrl||'',c.recruitUrl||'');
-  copyAndMark(txt,'confirm-dm');
-}
+function copyConfirmAndMark(){ copyAndMark('confirm-dm'); }
 
 // ──────────────────────────────────────
 // AI GENERATE
