@@ -917,21 +917,31 @@ async function generateShop(){
   c.shopInput=info;
   const outEl=document.getElementById('gs-output');
   if(outEl){ outEl.innerHTML='<div class="gen-box"><span class="gen-loading">生成中です…</span></div>'; }
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,
-        messages:[{role:'user',content:SHOP_PROMPT+`\n\n店舗名：${name}\n${info}`}]})
-    });
-    const data=await res.json();
-    const text=data.content?.map(b=>b.text||'').join('')||'エラーが発生しました';
-    c.genShop=text;
-    toast('生成完了！ステータスが「制作中」に自動更新します ✦');
-    renderSidebar();
-    renderMain();
-  }catch(e){
-    if(outEl) outEl.innerHTML=`<div class="gen-box">通信エラー: ${e.message}</div>`;
-  }
+  await new Promise(r=>setTimeout(r,900));
+  c.genShop=`※ ダミー文言です
+
+【タイトル候補5案】
+1. 大阪・難波で出会う、大人の隠れ家スナック
+2. チャーミングなママが迎える、ほっこり夜の社交場
+3. 難波駅すぐ！飲み放題3,000円〜の老舗スナック
+4. アットホームな雰囲気で、初めてでも安心のスナック
+5. 華やかなキャストと過ごす、とっておきの夜
+
+【店舗紹介文】
+大阪・難波の喧騒を抜けた路地に佇む「${name}」は、チャーミングなママが迎えてくれるアットホームなスナックです。アンティーク調の落ち着いた店内では、20〜30代の明るいキャストたちと楽しいひとときをお過ごしいただけます。
+
+飲み放題プランは90分3,000円〜とリーズナブル。カラオケも完備しており、仕事帰りの一杯から特別な夜まで幅広くご利用いただけます。初めてのお客様も常連さんも、どなたでも温かくお迎えします。
+
+ぜひ一度、扉を開いてみてください。きっとお気に入りの場所になるはずです。
+
+【SEOタイトル】
+難波スナック｜飲み放題3,000円〜アットホームな大人の隠れ家
+
+【SEOメタディスクリプション】
+大阪・難波の隠れ家スナック。チャーミングなママと明るいキャストが迎えるアットホームな空間。飲み放題90分3,000円〜、カラオケあり。初めての方も安心してご来店ください。`;
+  toast('生成完了！ステータスが「制作中」に自動更新します ✦');
+  renderSidebar();
+  renderMain();
 }
 
 async function generateRec(){
@@ -942,21 +952,42 @@ async function generateRec(){
   c.recInput=info;
   const outEl=document.getElementById('gr-output');
   if(outEl){ outEl.innerHTML='<div class="gen-box"><span class="gen-loading">生成中です…</span></div>'; }
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,
-        messages:[{role:'user',content:REC_PROMPT+`\n\n店舗名：${name}\n${info}`}]})
-    });
-    const data=await res.json();
-    const text=data.content?.map(b=>b.text||'').join('')||'エラーが発生しました';
-    c.genRec=text;
-    toast('生成完了！ ✦');
-    renderSidebar();
-    renderMain();
-  }catch(e){
-    if(outEl) outEl.innerHTML=`<div class="gen-box">通信エラー: ${e.message}</div>`;
-  }
+  await new Promise(r=>setTimeout(r,900));
+  c.genRec=`※ ダミー文言です
+
+【タイトル】
+未経験歓迎！難波のアットホームスナックでキャスト募集♪
+
+【本文】
+＼ ノルマなし・罰則なし・初心者大歓迎 ／
+
+大阪・難波の人気スナック「${name}」で一緒に働きませんか？チャーミングなママのもと、アットホームな雰囲気で楽しく働けます。
+
+■ 給与・待遇
+・時給 2,000円〜（経験・スキルにより優遇）
+・体験入店時給 2,500円
+・日払いOK
+・ドリンクバック・同伴バックあり
+
+■ シフト
+・週1日〜OK
+・20:00〜24:00（相談可）
+・終電後は送迎あり
+
+■ お店の特徴
+・ノルマ・罰則一切なし
+・未経験者が多数活躍中
+・アットホームで居心地のよい職場
+・落ち着いた大人の雰囲気
+
+【応募資格】
+18歳以上（高校生不可）、未経験者歓迎、Wワーク可
+
+【タグ候補】
+難波スナック求人 / 未経験歓迎 / ノルマなし / 日払いOK / 週1からOK / アットホーム / キャスト募集 / 大阪ナイトワーク / 飲み屋求人 / 体験入店あり / 送迎あり / Wワーク可 / 20代活躍中 / 夜職初心者 / 時給2000円以上`;
+  toast('生成完了！ ✦');
+  renderSidebar();
+  renderMain();
 }
 
 // ──────────────────────────────────────
@@ -974,65 +1005,32 @@ function saveIgInfoAndNext(){
 
 async function generateIgPrompt(){
   const c = cases[activeIdx];
-  const sysPrompt = `あなたはSNSマーケターです。
-スナックの店舗情報をもとに、ChatGPT（DALL-E）でInstagram投稿用の画像を生成するための英語プロンプトを作成してください。
-
-【画像の仕様・ルール】
-- Instagram正方形フォーマット（1:1）
-- 1枚目：店舗情報テキストを画像に溶け込ませたデザイン画像
-- スタイル：高級感のある夜の雰囲気、暖色系の秘密、大人のための落ち着いたムード
-- ブランド：エレガントな日本語テキストを画像に溶け込む
-- デザインは毎回統一されたムード（スナックマップのブランドカラー）
-- テキストレイアウト：上部に店舗名・中段に特徴・料金・下部にエリア・アクセス
-
-【出力形式】
-英語プロンプト（DALL-Eにそのまま貼り付けられる形式）とその日本語訳の両方を出力してください。
-
-フォーマット：
-【英語プロンプト（ChatGPTへの貼り付け用）】
-（ここに英語プロンプト）
-
-【日本語訳（内容確認用）】
-（ここに日本語訳）
-
-【Instagram投稿用キャプション（日本語）】
-（ここにInstagramのキャプション文・ハッシュタグ含む）
-
-店舗情報：`;
-
-  const info = `店舗名：${c.name||'未入力'}
-エリア・アクセス：${c.igArea||'未入力'}
-料金・システム：${c.igPrice||'未入力'}
-営業時間：${c.igHours||'未入力'}
-お店の特徴：${c.igFeature||'未入力'}
-雰囲気・店内：${c.igMood||'未入力'}`;
-
   const box = document.getElementById('ig-prompt-box');
   if(box){ box.innerHTML='<span class="gen-loading">生成中です…</span>'; }
-  else {
-    c.igPrompt = '生成中…';
-    renderMain();
-  }
+  else{ c.igPrompt='生成中…'; renderMain(); }
+  await new Promise(r=>setTimeout(r,900));
+  c.igPrompt=`※ ダミー文言です
 
-  try{
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-5',
-        max_tokens:1200,
-        messages:[{role:'user', content: sysPrompt + '\n\n' + info}]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.map(b=>b.text||'').join('') || 'エラーが発生しました';
-    c.igPrompt = text;
-    toast('プロンプト生成完了！ChatGPTに貼り付けてください ✦');
-    renderMain();
-  }catch(e){
-    c.igPrompt = '通信エラー: ' + e.message;
-    renderMain();
-  }
+【英語プロンプト（ChatGPTへの貼り付け用）】
+A square Instagram post image (1:1) for a Japanese snack bar called "${c.name||'〇〇'}". Warm amber and deep burgundy tones create an intimate, upscale nightlife atmosphere. Elegant Japanese typography overlaid on the image: store name at the top in gold calligraphy, specialty features and price system in the middle, area and access information at the bottom. The background shows a softly lit bar counter with warm bokeh lights. Sophisticated and adult ambiance, like a secret hideaway in Osaka Namba. Brand colors: deep red and gold. Instagram square format, photorealistic style.
+
+【日本語訳（内容確認用）】
+日本のスナックバー「${c.name||'〇〇'}」のInstagram正方形投稿画像（1:1）。温かみのあるアンバーとディープバーガンディのトーンで、親密でハイクラスなナイトライフの雰囲気を演出。画像に重ねた日本語タイポグラフィ：上部に金の書体で店舗名、中段に特徴と料金システム、下部にエリアとアクセス情報。背景は温かいボケライトで柔らかく照らされたバーカウンター。大阪難波の隠れ家のような、洗練された大人の雰囲気。ブランドカラー：深紅とゴールド。
+
+【Instagram投稿用キャプション（日本語）】
+✨ 大阪・難波の大人の隠れ家へようこそ ✨
+
+チャーミングなママと明るいキャストが、心温まるひとときをご用意してお待ちしています🍸
+
+飲み放題90分3,000円〜
+カラオケあり｜初めての方も大歓迎
+
+📍 難波駅徒歩3分
+🕐 毎日20:00〜翌2:00
+
+#難波スナック #大阪スナック #スナックマップ #難波夜遊び #大人の隠れ家 #スナック難波 #大阪ナイトライフ #飲み放題 #カラオケ #スナック好きな人と繋がりたい`;
+  toast('プロンプト生成完了！ChatGPTに貼り付けてください ✦');
+  renderMain();
 }
 
 // ──────────────────────────────────────
